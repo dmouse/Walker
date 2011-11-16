@@ -1,0 +1,17 @@
+<?php
+	
+	require_once("lib/walker.php");
+	
+	$w = new walker();
+
+	$op = array(
+		"ajax" => true, //  false
+		"debug" => 1, // 0,1
+		"method" => "POST", // default GET
+		"data" => array("start"=>"0","limit"=>"8000"), //data POST
+		"proxy" => "127.0.0.1:9050", // proxy SOCKS5
+	);
+	
+	$url = "http://www.google.com/";
+	$html = $w -> run ( $url, $op);
+	print $html;
