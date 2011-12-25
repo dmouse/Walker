@@ -7,17 +7,17 @@
 		var $ch;
 		var $color;
 		var $op;
+		var $mh;
+		var $rq_array;
 		
 		/*
 		* @param $url 
 		* 	String url to get information
 		*/
 		
-		public function __construct($url = null){
-			if ($url)
-				$this -> ch = curl_init($url);
-			else 
-				$this -> ch = curl_init();
+		public function __construct(){
+			
+			$this -> ch = curl_init();
 
 			$this -> color = new Colors();
 		}
@@ -126,72 +126,136 @@
 			curl_setopt ($this -> ch, CURLOPT_POSTFIELDS, $post);
 			$this -> debug (array("name"=>"Payload", "message"=> $post ));
 		}
-		
-		public function run ($url = null, $options = array()){
-	
+
+		private function _set_opts($url, $options){
 			/* set options */
 
-			$this -> op = $options;
-			
-			/*
-			 * 	Url : Url para hacer la petición
-			 */
+      $this -> op = $options;
 
-			if ( $url )
-				$this -> _set_url($url);
-			
+      /*
+       *  Url : Url para hacer la petición
+       */
+
+      if ( $url )
+        $this -> _set_url($url);
+
+      /*
+       *  False : User Agent random
+       *  0: Chrome 8
+       *  1: Firefox Ubuntu 10.10
+       *  2: IE 8
+       *  3: IE 9
+       *  4: Opera 9 
+       *  5: Safari 5
+       */
+      if (isset($options['agent']))
+        $this ->  _set_user_agent($options['agent']);
+      else
+        $this ->  _set_user_agent(); // random
+
 			/*
-			 * 	False : User Agent random
-			 *  0: Chrome 8
-			 * 	1: Firefox Ubuntu 10.10
-			 * 	2: IE 8
-			 * 	3: IE 9
-			 * 	4: Opera 9 
-			 * 	5: Safari 5
-			 */
-			if (isset($options['agent']))
-				$this ->  _set_user_agent($options['agent']);
-			else 
-				$this ->  _set_user_agent(); // se pone un user agent aleatorio
-			
-				
-			/*
-			 * 	Headers : Array con los cabezales 
-			 */
-			if (isset($options['headers']) && is_array($options['headers']) )
-				$this -> _set_headers($options['headers']);
-			else
-				$this -> _set_headers(); // se pone el cabezal
-			
-			
-			$this -> _return_transfer(); // regresar transferencia?
-			
-			
-			/*
-			 * 	Proxy : default none
-			 */
-			if (isset($options['proxy']))
-				$this -> _set_proxy($options['proxy']);
-			else
-				$this -> _set_proxy();
-				
-			$this -> _set_compression();
-			
+       *  Headers : Array con los cabezales 
+       */
+      if (isset($options['headers']) && is_array($options['headers']) )
+        $this -> _set_headers($options['headers']);
+      else
+        $this -> _set_headers(); // se pone el cabezal
+
+
+      $this -> _return_transfer(); // regresar transferencia?
+
+
+      /*
+       *  Proxy : default none
+       */
+      if (isset($options['proxy']))
+        $this -> _set_proxy($options['proxy']);
+      /*else
+        $this -> _set_proxy();*/
+
+      $this -> _set_compression();
+
 			(isset($options['method']) == "POST") ?  $this ->  _post($options['data']): false;
+      
+      
+      return $this -> ch;
+
+		}
+		
+		public function run ($url = null, $options = array()){
+		
+			$this -> _set_opts($url, $options);
 			
 			//curl_setopt($this->ch,CURLOPT_NOPROGRESS,false);
 			//curl_setopt($this->ch,CURLOPT_PROGRESSFUNCTION,'progress');
 			
 			//curl_setopt($this->ch,CURLOPT_INTERFACE,'eth2');
-
-			$this -> debug (array("name"=>"Exec", "message"=> "OK" ));
 				
-			return curl_exec($this->ch); //ejecuta la peticion
+
+      $this -> debug (array("name"=>"Exec", "message"=> "OK" ));
+      
+			//return curl_exec($this->ch); 
+			
+		}
+
+		public function multi_init(){
+
+			$this -> mh = curl_multi_init();
+			
+			$this -> rq_array = array();
 			
 		}
 		
-		public function close(){
+		private function _get_key(){
+			
+			return (string) $this -> ch;
+			
+		}
+
+		public function multi_opts($url, $ops){
+
+			$this -> ch = curl_init();
+
+			$this -> _set_opts($url, $ops);
+
+			$key = $this -> _get_key();
+			
+			$this -> rq_array [ $key ] ['ops'] = $ops;
+			
+			$code = curl_multi_add_handle($this -> mh, $this -> ch);
+			
+		}
+		
+		
+
+		public function multi_run(){
+			
+			do { 
+					usleep(10000);
+					curl_multi_exec($this -> mh,$running); 
+					echo "=";
+			} while($running > 0);
+			
+			
+			while($done = curl_multi_info_read($this->mh)){
+				$key = (string)$done['handle'];
+				
+				$data = curl_multi_getcontent($done['handle']);
+				
+				$this -> rq_array [ $key ]['data'] = $data;
+				
+		
+			}
+			
+			return $this -> rq_array;
+		
+		}
+		
+		function __destruct(){
 			curl_close($this->ch);
+			curl_multi_close ($this -> mh);
+			echo "\n";
+			$this -> debug (array("name"=>"+", "message"=>"0xD"));
 		}
 		
 	}
