@@ -194,7 +194,7 @@
 
       $this -> debug (array("name"=>"Exec", "message"=> "OK" ));
       
-			//return curl_exec($this->ch); 
+			return curl_exec($this->ch);
 			
 		}
 
@@ -231,9 +231,11 @@
 		public function multi_run(){
 			
 			do { 
-					usleep(10000);
-					curl_multi_exec($this -> mh,$running); 
-					echo "=";
+				usleep(10000);
+				curl_multi_exec($this -> mh,$running);
+				
+				echo  '.';
+					
 			} while($running > 0);
 			
 			
@@ -253,7 +255,8 @@
 		
 		function __destruct(){
 			curl_close($this->ch);
-			curl_multi_close ($this -> mh);
+			if ($this -> mh)
+				curl_multi_close ($this -> mh);
 			echo "\n";
 			$this -> debug (array("name"=>"+", "message"=>"0xD"));
 		}
